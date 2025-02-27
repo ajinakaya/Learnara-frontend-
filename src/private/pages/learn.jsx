@@ -1,10 +1,6 @@
 import axios from "axios";
 import {
-  ArrowLeft,
-  BookOpen,
-  CheckCircle,
-  Globe,
-  PlayCircle,
+  ArrowLeft,BookOpen,CheckCircle,Globe,PlayCircle,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import Navbar from "../components/navbar";
