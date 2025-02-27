@@ -1,15 +1,6 @@
 import axios from "axios";
 import {
-  AlertCircle,
-  CalendarDays,
-  ChevronDown,
-  ChevronUp,
-  Clock,
-  Edit2,
-  Loader,
-  Plus,
-  Search,
-  Trash2,
+  AlertCircle,CalendarDays,ChevronDown,ChevronUp,Clock,Edit2,Loader,Plus,Search,Trash2,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import Navbar from "../components/navbar";
