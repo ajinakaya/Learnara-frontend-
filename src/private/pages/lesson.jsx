@@ -2,9 +2,7 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import {
-  AudioActivity,
-  FlashcardActivity,
-  QuizActivity,
+  AudioActivity,FlashcardActivity,QuizActivity,
 } from "../Activitytype/activitycomponents";
 import Navbar from "../components/navbar";
 import { useAuth } from "../context/authcontext";
