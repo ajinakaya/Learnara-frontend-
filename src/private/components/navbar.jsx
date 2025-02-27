@@ -1,15 +1,6 @@
 import axios from "axios";
 import {
-  Bell,
-  BookText,
-  ChartNoAxesCombined,
-  ChevronDown,
-  Goal,
-  GraduationCap,
-  LogOut,
-  Settings,
-  User,
-} from "lucide-react";
+  Bell,BookText,ChartNoAxesCombined,ChevronDown,Goal, GraduationCap,LogOut,Settings,User,} from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/authcontext";
