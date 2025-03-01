@@ -117,10 +117,4 @@ test.describe('Goal Management Page', () => {
     await page.waitForSelector('text=No goals created yet');
   });
 
-  
- 
-
-    
-    
-   
 });
