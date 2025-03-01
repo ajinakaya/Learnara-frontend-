@@ -7,7 +7,8 @@ import Sidebar from "./sidebar";
 const ChapterPage = () => {
   const [languages, setLanguages] = useState([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [subLessons, setSubLessons] = useState([]);
+  const [allSubLessons, setAllSubLessons] = useState([]); // Store all sublessons
+  const [subLessons, setSubLessons] = useState([]); // Filtered sublessons
   const [chapters, setChapters] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -43,7 +44,8 @@ const ChapterPage = () => {
         ]);
 
         setLanguages(languagesRes);
-        setSubLessons(subLessonsRes);
+        setAllSubLessons(subLessonsRes); 
+        setSubLessons([]); 
         setChapters(chaptersRes);
         setError(null);
       } catch (err) {
@@ -56,9 +58,32 @@ const ChapterPage = () => {
     fetchData();
   }, []);
 
+  // Filter sublessons when language changes
+  const filterSubLessonsByLanguage = (languageId) => {
+    if (!languageId) {
+      setSubLessons([]);
+      return;
+    }
+    
+    // Filter sublessons that match the selected language
+    const filtered = allSubLessons.filter(
+      (lesson) => lesson.language && lesson.language._id === languageId
+    );
+    setSubLessons(filtered);
+  };
+
   const handleChange = (e) => {
     const { name, value, type } = e.target;
-    if (type === "select-multiple") {
+    if (name === "language") {
+      setFormData((prev) => ({
+        ...prev,
+        language: value,
+        subLessons: [], 
+      }));
+      
+      // Filter sublessons based on selected language
+      filterSubLessonsByLanguage(value);
+    } else if (type === "select-multiple") {
       const options = e.target.options;
       const selectedValues = [];
       for (let i = 0; i < options.length; i++) {
@@ -157,9 +182,14 @@ const ChapterPage = () => {
 
   const editChapter = (chapter) => {
     setEditingId(chapter._id);
+    
+    // Set the current language and filter sublessons
+    const languageId = chapter.language._id;
+    filterSubLessonsByLanguage(languageId);
+    
     setFormData({
       ...chapter,
-      language: chapter.language._id,
+      language: languageId,
     });
   };
 
@@ -176,6 +206,7 @@ const ChapterPage = () => {
       status: "draft",
     });
     setEditingId(null);
+    setSubLessons([]); // Clear filtered sublessons
   };
 
   return (
@@ -288,6 +319,7 @@ const ChapterPage = () => {
                       multiple
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       size="4"
+                      disabled={!formData.language} // Disable if no language selected
                     >
                       {subLessons.map((lesson) => (
                         <option key={lesson._id} value={lesson._id}>
@@ -295,6 +327,16 @@ const ChapterPage = () => {
                         </option>
                       ))}
                     </select>
+                    {!formData.language && (
+                      <p className="text-sm text-gray-500 mt-1">
+                        Please select a language first to see available sub lessons
+                      </p>
+                    )}
+                    {formData.language && subLessons.length === 0 && (
+                      <p className="text-sm text-gray-500 mt-1">
+                        No sub lessons available for this language
+                      </p>
+                    )}
                   </div>
 
                   <div className="col-span-2">
