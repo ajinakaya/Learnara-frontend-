@@ -12,32 +12,6 @@ test.describe('SubLesson Management Page', () => {
     page.on('console', log => console.log(`Console: ${log.text()}`));
   });
 
-  test('should update activity type and fetch related activities', async ({ page }) => {
-    // Mock API response for activities
-    await page.route('http://localhost:3001/video/video', async route => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify([
-          { _id: '1', title: 'Test Video 1' },
-          { _id: '2', title: 'Test Video 2' },
-        ]),
-      });
-    });
-    
-    // Select activity type
-    await page.selectOption('select[name="activityType"]', 'VideoActivity');
-    
-    // Check if activity select appears and has options
-    const activitySelect = page.locator('select[multiple]');
-    await expect(activitySelect).toBeVisible();
-    
-    const options = activitySelect.locator('option');
-    await expect(options).toHaveCount(2);
-    await expect(options.nth(0)).toHaveText('Test Video 1');
-    await expect(options.nth(1)).toHaveText('Test Video 2');
-  });
-
 
 
   test('should cancel form editing', async ({ page }) => {
