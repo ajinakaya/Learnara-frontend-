@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
-  Book,Trash2,Edit2,Clock,Tag,Star,DollarSign,BookOpen,FileText,
+  Book, Trash2, Edit2, Clock, Tag, Star, DollarSign, BookOpen, FileText,
 } from "lucide-react";
 import axios from "axios";
 import { Card, CardHeader, CardTitle, CardContent } from "./card";
@@ -10,6 +10,7 @@ const Course = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [languages, setLanguages] = useState([]);
   const [chapters, setChapters] = useState([]);
+  const [filteredChapters, setFilteredChapters] = useState([]);
   const [formData, setFormData] = useState({
     title: "",
     language: "",
@@ -66,6 +67,26 @@ const Course = () => {
     };
     fetchChapters();
   }, []);
+
+  // Filter chapters based on selected language
+  useEffect(() => {
+    if (formData.language && chapters.length > 0) {
+      const filtered = chapters.filter(chapter => 
+        chapter.language && chapter.language._id === formData.language
+      );
+      setFilteredChapters(filtered);
+      
+      // Clear selected chapters if they don't belong to the selected language
+      setFormData(prev => ({
+        ...prev,
+        chapters: prev.chapters.filter(chapterId => 
+          filtered.some(filteredChapter => filteredChapter._id === chapterId)
+        )
+      }));
+    } else {
+      setFilteredChapters([]);
+    }
+  }, [formData.language, chapters]);
 
   // Fetch all courses
   const fetchCourses = async () => {
@@ -498,14 +519,24 @@ const Course = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Chapters
                       </label>
+                      {!formData.language ? (
+                        <div className="text-amber-600 mb-2">
+                          Please select a language first to see available chapters
+                        </div>
+                      ) : filteredChapters.length === 0 ? (
+                        <div className="text-amber-600 mb-2">
+                          No chapters available for the selected language
+                        </div>
+                      ) : null}
                       <select
                         multiple
                         name="chapters"
                         value={formData.chapters}
                         onChange={handleChapterChange}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[100px]"
+                        disabled={!formData.language || filteredChapters.length === 0}
                       >
-                        {chapters.map((chapter) => (
+                        {filteredChapters.map((chapter) => (
                           <option key={chapter._id} value={chapter._id}>
                             {chapter.title}
                           </option>
