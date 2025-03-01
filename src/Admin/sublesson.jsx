@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import {
-  PlusCircle,
   Book,
   Grid,
   Clock,
@@ -74,31 +73,40 @@ const SubLesson = () => {
     }
   };
 
-  // Fetch activities based on selected type
-  const fetchActivitiesByType = async (type) => {
-    try {
-      let endpoint = "";
-      switch (type) {
-        case "VideoActivity":
-          endpoint = "http://localhost:3001/video/video";
-          break;
-        case "QuizActivity":
-          endpoint = "http://localhost:3001/quiz/quiz";
-          break;
-        case "AudioActivity":
-          endpoint = "http://localhost:3001/audio/audio";
-          break;
-        case "FlashcardActivity":
-          endpoint = "http://localhost:3001/flashcard/flashcard";
-          break;
-      }
-      const response = await fetch(endpoint);
-      const data = await response.json();
-      setAvailableActivities(data);
-    } catch (err) {
-      setError(`Failed to fetch ${type} activities`);
+// Fetch activities based on selected type and language
+const fetchActivitiesByType = async (type, languageId) => {
+  try {
+    if (!type || !languageId) {
+      console.log("Missing type or language");
+      return;
     }
-  };
+    
+    let endpoint = "";
+    switch (type) {
+      case "VideoActivity":
+        endpoint = "http://localhost:3001/video/video";
+        break;
+      case "QuizActivity":
+        endpoint = "http://localhost:3001/quiz/quiz";
+        break;
+      case "AudioActivity":
+        endpoint = "http://localhost:3001/audio/audio";
+        break;
+      case "FlashcardActivity":
+        endpoint = "http://localhost:3001/flashcard/flashcard";
+        break;
+    }
+    
+    console.log(`Fetching ${type} activities for language: ${languageId}`);
+    const response = await fetch(`${endpoint}?language=${languageId}`);
+    const data = await response.json();
+    console.log("Received activities:", data);
+    setAvailableActivities(data);
+  } catch (err) {
+    console.error(err);
+    setError(`Failed to fetch ${type} activities for the selected language`);
+  }
+};
 
   useEffect(() => {
     fetchSubLessons();
@@ -107,18 +115,26 @@ const SubLesson = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    
+    // Create updated form data with the new value
+    const updatedFormData = {
+      ...formData,
+      [name]: value,
+    };
+    
+    // If changing activity type, reset activities
     if (name === "activityType") {
-      fetchActivitiesByType(value);
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-        activities: [],
-      }));
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
+      updatedFormData.activities = [];
+    }
+    
+    // Update state with the new values
+    setFormData(updatedFormData);
+    
+    // If language or activity type changes and we have both values, fetch activities
+    if ((name === "language" || name === "activityType") && 
+        updatedFormData.language && updatedFormData.activityType) {
+      // Use the updated form data values for the fetch
+      fetchActivitiesByType(updatedFormData.activityType, updatedFormData.language);
     }
   };
 
