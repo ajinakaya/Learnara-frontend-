@@ -14,7 +14,7 @@ import LanguagesPage from "./Admin/language";
 import SubLessonPage from "./Admin/sublesson";
 import UserManagement from "./Admin/user";
 import Navbar from "./private/components/navbar";
-import LanguageSelector from "./private/langauge/selected language";
+import LanguageSelector from "./private/langauge/selectedlanguage";
 import ChaptersPage from "./private/pages/chapter";
 import CoursePage from "./private/pages/coursepage";
 import LearningGoals from "./private/pages/goal";

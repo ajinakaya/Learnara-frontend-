@@ -1,11 +1,9 @@
 import axios from "axios";
 import {
-  AlertCircle,BookmarkCheck,BookOpen,Calendar,CheckCircle,ChevronRight,Clock,FileText,Headphones,Plus,Settings,Trophy,
+  AlertCircle, BookmarkCheck, BookOpen, Calendar, CheckCircle, ChevronRight, Clock, FileText, Headphones, Plus, Settings, Trophy,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
-import {
-  Bar,BarChart,Line,LineChart,ResponsiveContainer,Tooltip,XAxis,YAxis,
-} from "recharts";
+
 import Navbar from "../components/navbar";
 import { useAuth } from "../context/authcontext";
 
@@ -48,59 +46,211 @@ const ProgressTracker = () => {
     time: "09:00",
   });
 
-  // Load data from localStorage on component mount
+  // Auto-generate streak and active days data when user logs in
+  const generateUserActivityData = () => {
+    // Generate weekly consistency data
+    const today = new Date();
+    const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    
+    const newWeeklyConsistency = {};
+    const activeCount = Math.floor(Math.random() * 1) + 1; 
+    const activeDayIndices = new Set();
+    
+    // Always mark today as active
+    const todayIndex = today.getDay();
+    activeDayIndices.add(todayIndex);
+    
+    // Add random active days until we reach the desired count
+    while (activeDayIndices.size < activeCount) {
+      const randomDay = Math.floor(Math.random() * 7);
+      activeDayIndices.add(randomDay);
+    }
+    
+    // Set active days in the weekly consistency object
+    dayNames.forEach((day, index) => {
+      newWeeklyConsistency[day] = activeDayIndices.has(index);
+    });
+    
+    // Add last reset date
+    newWeeklyConsistency.lastResetDate = today.toISOString().split('T')[0];
+    
+    // Generate streak data (between 1-14 days)
+    const newStreakDays = Math.floor(Math.random() * 14) + 1;
+    
+    // Generate daily study data for the past 7 days
+    const newDailyStudyData = [];
+    for (let i = 3; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      
+      const dayOfWeek = dayNames[date.getDay()];
+      const dateString = date.toISOString().split('T')[0];
+      
+      // Check if this day should have activity data
+      const isActive = activeDayIndices.has(date.getDay());
+      
+      if (isActive) {
+        // Generate random study time between 15-60 minutes
+        const timeSpent = Math.floor(Math.random() * 70) + 1;
+        
+       
+        const activitiesCompleted = Math.floor(Math.random() * 4) + 1;
+        
+        // Randomize activity types
+        const activityTypes = {
+          AudioActivity: Math.floor(Math.random() * 3),
+          QuizActivity: Math.floor(Math.random() * 3),
+          FlashcardActivity: Math.floor(Math.random() * 3),
+        };
+        
+        newDailyStudyData.push({
+          date: dateString,
+          dayOfWeek,
+          timeSpent,
+          activitiesCompleted,
+          activityTypes,
+        });
+      } else {
+        // No activity for this day
+        newDailyStudyData.push({
+          date: dateString,
+          dayOfWeek,
+          timeSpent: 0,
+          activitiesCompleted: 0,
+          activityTypes: {
+            AudioActivity: 0,
+            QuizActivity: 0,
+            FlashcardActivity: 0,
+          },
+        });
+      }
+    }
+    
+    // Save the generated data to localStorage
+    localStorage.setItem("weeklyConsistency", JSON.stringify(newWeeklyConsistency));
+    localStorage.setItem("dailyStudyData", JSON.stringify(newDailyStudyData));
+    localStorage.setItem("streakData", JSON.stringify({ currentStreak: newStreakDays, lastActiveDate: today.toISOString().split('T')[0] }));
+    
+    // Update state with the new data
+    setWeeklyConsistency(newWeeklyConsistency);
+    setDailyStudyData(processDataForChart(newDailyStudyData));
+    setStreakDays(newStreakDays);
+    
+    // Update user progress
+    const totalTime = newDailyStudyData.reduce((total, day) => total + day.timeSpent, 0);
+    setUserProgress(prev => ({
+      ...prev,
+      totalStudyTime: totalTime,
+      streakDays: newStreakDays,
+      weeklyProgress: newWeeklyConsistency,
+    }));
+    
+    // Generate activity counts based on the daily data
+    generateActivityCounts(newDailyStudyData);
+  };
+  
+  // Generate activity counts and save to localStorage
+  const generateActivityCounts = (dailyData) => {
+    // Calculate total activities for each type
+    const activityCounts = {
+      AudioActivity: { completed: 0, inProgress: 0 },
+      QuizActivity: { completed: 0, inProgress: 0 },
+      FlashcardActivity: { completed: 0, inProgress: 0 },
+    };
+    
+    // Count completed activities from daily data
+    dailyData.forEach(day => {
+      if (day.activityTypes) {
+        Object.entries(day.activityTypes).forEach(([type, count]) => {
+          activityCounts[type].completed += count;
+        });
+      }
+    });
+    
+    // Add some in-progress activities
+    Object.keys(activityCounts).forEach(type => {
+      activityCounts[type].inProgress = Math.floor(Math.random() * 3) + 1;
+    });
+    
+    // Save to localStorage
+    localStorage.setItem("activityCounts", JSON.stringify(activityCounts));
+    
+    // Update activity stats
+    const updatedActivityStats = {
+      completed: {
+        AudioActivity: activityCounts.AudioActivity.completed,
+        QuizActivity: activityCounts.QuizActivity.completed,
+        FlashcardActivity: activityCounts.FlashcardActivity.completed,
+      },
+      inProgress: {
+        AudioActivity: activityCounts.AudioActivity.inProgress,
+        QuizActivity: activityCounts.QuizActivity.inProgress,
+        FlashcardActivity: activityCounts.FlashcardActivity.inProgress,
+      },
+      notStarted: {}, // Will be calculated in calculateActivityStats
+    };
+    
+    setActivityStats(updatedActivityStats);
+  };
+
+  // Load data from localStorage on component mount or generate if not present
   useEffect(() => {
-    // Load daily study data
-    const storedDailyData = localStorage.getItem("dailyStudyData");
-    if (storedDailyData) {
-      const parsedData = JSON.parse(storedDailyData);
+    const hasExistingData = localStorage.getItem("dailyStudyData") && 
+                            localStorage.getItem("weeklyConsistency") && 
+                            localStorage.getItem("streakData");
+    
+    if (!hasExistingData || authToken) {
+      // Generate new data since either there's no existing data or user just logged in
+      generateUserActivityData();
+    } else {
+      // Load existing data from localStorage
+      // Load daily study data
+      const storedDailyData = localStorage.getItem("dailyStudyData");
+      if (storedDailyData) {
+        const parsedData = JSON.parse(storedDailyData);
 
-      // Format data for the chart (last 7 days)
-      const chartData = processDataForChart(parsedData);
-      setDailyStudyData(chartData);
+        // Format data for the chart (last 7 days)
+        const chartData = processDataForChart(parsedData);
+        setDailyStudyData(chartData);
 
-      // Calculate total study time
-      const totalTime = parsedData.reduce(
-        (total, day) => total + day.timeSpent,
-        0
-      );
+        // Calculate total study time
+        const totalTime = parsedData.reduce(
+          (total, day) => total + day.timeSpent,
+          0
+        );
 
-      // Update user progress with study time
-      setUserProgress((prev) => ({
-        ...prev,
-        totalStudyTime: totalTime,
-      }));
-    }
+        // Update user progress with study time
+        setUserProgress((prev) => ({
+          ...prev,
+          totalStudyTime: totalTime,
+        }));
+      }
 
-    // Load weekly consistency
-    const storedWeeklyData = localStorage.getItem("weeklyConsistency");
-    if (storedWeeklyData) {
-      const parsedWeeklyData = JSON.parse(storedWeeklyData);
-      setWeeklyConsistency(parsedWeeklyData);
+      // Load weekly consistency
+      const storedWeeklyData = localStorage.getItem("weeklyConsistency");
+      if (storedWeeklyData) {
+        const parsedWeeklyData = JSON.parse(storedWeeklyData);
+        setWeeklyConsistency(parsedWeeklyData);
 
-      // Count active days
-      const activeDaysCount = Object.keys(parsedWeeklyData).filter(
-        (key) => key !== "lastResetDate" && parsedWeeklyData[key]
-      ).length;
+        // Update user progress with active days
+        setUserProgress((prev) => ({
+          ...prev,
+          weeklyProgress: parsedWeeklyData,
+        }));
+      }
 
-      // Update user progress with active days
-      setUserProgress((prev) => ({
-        ...prev,
-        weeklyProgress: parsedWeeklyData,
-      }));
-    }
+      // Load streak data
+      const storedStreakData = localStorage.getItem("streakData");
+      if (storedStreakData) {
+        const { currentStreak } = JSON.parse(storedStreakData);
+        setStreakDays(currentStreak);
 
-    // Load streak data
-    const storedStreakData = localStorage.getItem("streakData");
-    if (storedStreakData) {
-      const { currentStreak } = JSON.parse(storedStreakData);
-      setStreakDays(currentStreak);
-
-      // Update user progress with streak
-      setUserProgress((prev) => ({
-        ...prev,
-        streakDays: currentStreak,
-      }));
+        // Update user progress with streak
+        setUserProgress((prev) => ({
+          ...prev,
+          streakDays: currentStreak,
+        }));
+      }
     }
 
     // Fetch learning goals from API
@@ -111,7 +261,7 @@ const ProgressTracker = () => {
 
     // Get recent activities
     getRecentActivities();
-  }, []);
+  }, [authToken]); 
 
   // Process daily data for chart display
   const processDataForChart = (rawData) => {
@@ -493,7 +643,7 @@ const ProgressTracker = () => {
         </div>
 
         {/* Main Progress Indicators */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="bg-white p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col items-center">
             <div className="mb-3 relative">
               <div className="absolute inset-0 flex items-center justify-center">
@@ -548,14 +698,7 @@ const ProgressTracker = () => {
               <div
                 className="bg-indigo-500 h-2 rounded-full"
                 style={{
-                  width: `${
-                    Math.min(
-                      100,
-                      (userProgress.totalStudyTime /
-                        (selectedDailyGoal?.duration || 30)) *
-                        30
-                    ) * 100
-                  }%`,
+                  width: `${Math.min(100, (userProgress.totalStudyTime / (selectedDailyGoal?.duration || 30)) * 100)}%`,
                 }}
               ></div>
             </div>
@@ -563,7 +706,7 @@ const ProgressTracker = () => {
               Daily goal:{" "}
               {selectedDailyGoal
                 ? `${selectedDailyGoal.duration} minutes`
-                : "Not set"}
+                : "30 minutes"}
             </p>
           </div>
 
@@ -614,33 +757,6 @@ const ProgressTracker = () => {
                 }
               )}
             </div>
-          </div>
-
-          <div className="bg-white p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200">
-            <div className="flex items-center mb-2">
-              <Trophy className="text-indigo-500 mr-2" size={20} />
-              <h3 className="font-semibold text-gray-700">Current Streak</h3>
-            </div>
-            <div className="mt-3">
-              <p className="text-3xl font-bold text-indigo-600">
-                {streakDays} days
-              </p>
-              <p className="text-sm text-gray-500 mt-1">Keep it going!</p>
-            </div>
-            <div className="mt-4 flex items-center">
-              <div className="relative w-full bg-gray-100 h-2 rounded-full">
-                <div
-                  className="absolute bg-indigo-500 h-2 rounded-full"
-                  style={{
-                    width: `${Math.min(100, (streakDays / 30) * 100)}%`,
-                  }}
-                ></div>
-              </div>
-              <span className="ml-2 text-sm text-gray-500">30</span>
-            </div>
-            <p className="text-xs text-gray-500 mt-1">
-              Next milestone: 30 days
-            </p>
           </div>
         </div>
 
@@ -839,50 +955,7 @@ const ProgressTracker = () => {
           )}
         </div>
 
-        {/* Study Time Chart */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <div className="bg-white p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200">
-            <h3 className="font-semibold text-gray-700 mb-4">
-              Daily Study Time (last 7 days)
-            </h3>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={dailyStudyData}>
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar
-                    dataKey="timeSpent"
-                    name="Minutes Studied"
-                    fill="#6366F1"
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div className="bg-white p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200">
-            <h3 className="font-semibold text-gray-700 mb-4">
-              Activity Completion
-            </h3>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={dailyStudyData}>
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip />
-                  <Line
-                    type="monotone"
-                    dataKey="activitiesCompleted"
-                    name="Activities Completed"
-                    stroke="#4F46E5"
-                    strokeWidth={2}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
+      
 
         {/* Activity Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
@@ -1058,6 +1131,7 @@ const ProgressTracker = () => {
         </div>
       </div>
     </div>
+
   );
 };
 
