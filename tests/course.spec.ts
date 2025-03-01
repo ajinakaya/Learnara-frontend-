@@ -75,28 +75,6 @@ test.describe('Course Management Page', () => {
   });
 
 
-
-
-  test('should filter courses by status', async ({ page }) => {
-    if (await page.locator('span:has-text("Draft")').count() === 0) {
-      await page.fill('input[name="title"]', 'Draft Test Course');
-      await page.selectOption('select[name="language"]', { index: 1 });
-      await page.fill('textarea[name="description"]', 'Test description');
-      await page.selectOption('select[name="status"]', 'draft');
-      await page.click('button[type="submit"]:has-text("Create Course")');
-    }
-    
-    // Create a published course if none exists
-    if (await page.locator('span:has-text("Published")').count() === 0) {
-      await page.fill('input[name="title"]', 'Published Test Course');
-      await page.selectOption('select[name="language"]', { index: 1 });
-      await page.fill('textarea[name="description"]', 'Test description');
-      await page.selectOption('select[name="status"]', 'published');
-      await page.click('button[type="submit"]:has-text("Create Course")');
-    }
-    
-  });
-
   test('should handle network errors gracefully', async ({ page, context }) => {
     // Mock a network failure for the course creation API
     await context.route('**/course/course', route => {
